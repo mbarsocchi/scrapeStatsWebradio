@@ -1,7 +1,7 @@
 <?php
-
-if (file_exists('./config.json')) {
-    $json = file_get_contents('./config.json');
+$fileCompletePath = dirname(__FILE__).'/config.json';
+if (file_exists($fileCompletePath)) {
+    $json = file_get_contents($fileCompletePath);
     $config = json_decode($json, true);
 }else {
     die("no config.json file found in the root of this project, please provide ones writtens like this:"
