@@ -22,7 +22,7 @@ if (file_exists('./config.json')) {
       \"protocol\": \"ice\",
       \"position\": 9
     },
-    \"Radio Sonar\": {
+    \"<RADIO-NUMBER-3>\": {
       \"url\": \"<WEBRADIO-SERVER-URL3>\",
       \"protocol\": \"ice\",
       \"position\": 2

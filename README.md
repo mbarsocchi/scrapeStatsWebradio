@@ -12,3 +12,27 @@ It's suppose to run as cronjob each minute. Add this line to your cronjob. Type:
 add this line (modify your path accordingly).
 
     *  *  *  *  *  php stats.php
+
+Please add a config.json file at root level of your script, similar to this
+
+EXAMPLE
+
+    {
+        "dbConfig": {
+          "servername": "<DB-HOST>",
+          "username": "<DB-USERNAME>",
+          "password": "<DB-PASSWORD>",
+          "dbname": "<DB-TABLE-FOR-LISTNER>"
+        },
+        "radios": {
+          "<RADIO-NUMBER-1>": {
+            "url": "<WEBRADIO-SERVER-URL1>",
+            "protocol": "shout"
+          },
+          "<RADIO-NUMBER-2>": {
+            "url": "<WEBRADIO-SERVER-URL2>",
+            "protocol": "ice",
+            "position": 9
+          }
+      }
+    }
