@@ -95,7 +95,7 @@ function getProgramIdFromObject($cacheFielObj) {
     $temp = explode(":", date("G:i"));
     $minuteFromMidnight = intval($temp[0]) * 60 + intval($temp[1]);
     $tempDiff = 1440; // number of minutes in a day
-    $r=0;
+    $r = 0;
     foreach ($cacheFielObj as $key => $progId) {
         $currentDiff = intval($key) - $minuteFromMidnight;
         if ($currentDiff >= 0) {
@@ -107,9 +107,9 @@ function getProgramIdFromObject($cacheFielObj) {
 }
 
 function getProgramId($url) {
-    $cachePalinsestoDayFile = __DIR__."/".date("Ymd") . ".chc";
+    $cachePalinsestoDayFile = __DIR__ . "/" . date("Ymd") . ".chc";
     if (!file_exists($cachePalinsestoDayFile)) {
-        array_map('unlink', array_filter((array) glob(__DIR__."/"."*.chc")));
+        array_map('unlink', array_filter((array) glob(__DIR__ . "/" . "*.chc")));
         $json = file_get_contents($url);
         $resp = json_decode($json);
         $cacheFielObj = array();
@@ -134,13 +134,18 @@ function getProgramId($url) {
 function insertListner($radioListner, $dbConfig) {
 
     $conn = new mysqli($dbConfig["servername"], $dbConfig["username"], $dbConfig["password"], $dbConfig["dbname"]);
+    date_default_timezone_set("Europe/Rome");
     $date = date("Y-m-d H:i:s");
     $sql = "INSERT INTO `other_radio` (`date`, `listner`, `name`, `trasmission_id`) VALUES ";
     foreach ($radioListner as $radioName => $listner) {
         if ($listner['listner'] != null && $listner['listner'] != "" && is_numeric($listner['listner'])) {
-            $pId = isset($listner['programId']) ? $listner['programId'] : 0;
             $number = $listner['listner'];
-            $sql .= "('$date', $number,'$radioName',$pId),";
+            $pId = @$listner['programId'];
+            if (isset($pId)) {
+                $sql .= "('$date', $number,'$radioName',$pId),";
+            } else {
+                $sql .= "('$date', $number,'$radioName',NULL),";
+            }
         }
     }
     $sql = substr($sql, 0, -1);
@@ -170,7 +175,7 @@ foreach ($config["radios"] as $radioName => $data) {
         }
     }
     if (isset($data['isMyRadio']) && $data['isMyRadio']) {
-        $res[$radioName]['programId'] = getProgramId( $config["palinsestoUrl"]);
+        $res[$radioName]['programId'] = getProgramId($config["palinsestoUrl"]);
     }
     $res[$radioName]['listner'] = $listner;
 }
