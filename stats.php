@@ -1,9 +1,16 @@
 <?php
-$fileCompletePath = dirname(__FILE__).'/config.json';
+
+$DEBUG = false;
+
+if (isset($argv[1]) && strtolower($argv[1]) == "debug") {
+    $DEBUG = true;
+}
+
+$fileCompletePath = dirname(__FILE__) . '/config.json';
 if (file_exists($fileCompletePath)) {
     $json = file_get_contents($fileCompletePath);
     $config = json_decode($json, true);
-}else {
+} else {
     die("no config.json file found in the root of this project, please provide ones writtens like this:"
             . "{
   \"dbConfig\": {
@@ -12,10 +19,12 @@ if (file_exists($fileCompletePath)) {
     \"password\": \"<DB-PASSWORD>\",
     \"dbname\": \"<DB-TABLE-FOR-LISTNER>\"
   },
+   \"palinsestoUrl\":\"\",
   \"radios\": {
     \"<RADIO-NUMBER-1>\": {
       \"url\": \"<WEBRADIO-SERVER-URL1>\",
-      \"protocol\": \"shout\"
+      \"protocol\": \"shout\",
+      \"isMyRadio\":true
     },
     \"<RADIO-NUMBER-2>\": {
       \"url\": \"<WEBRADIO-SERVER-URL2>\",
@@ -44,8 +53,13 @@ function getDom($url) {
     curl_close($curl);
 
     $dom = new DOMDocument();
-    @$dom->loadHTML($html);
-    $dom->preserveWhiteSpace = false;
+    if ($html != null && $html != "") {
+        @$dom->loadHTML($html);
+        $dom->preserveWhiteSpace = false;
+    } else {
+        echo $url;
+    }
+
     return $dom;
 }
 
@@ -77,14 +91,56 @@ function geticecastlistner($dom, $position) {
     return $res;
 }
 
+function getProgramIdFromObject($cacheFielObj) {
+    $temp = explode(":", date("G:i"));
+    $minuteFromMidnight = intval($temp[0]) * 60 + intval($temp[1]);
+    $tempDiff = 1440; // number of minutes in a day
+    $r=0;
+    foreach ($cacheFielObj as $key => $progId) {
+        $currentDiff = intval($key) - $minuteFromMidnight;
+        if ($currentDiff >= 0) {
+            $r = $progId;
+            break;
+        }
+    }
+    return $r;
+}
+
+function getProgramId($url) {
+    $cachePalinsestoDayFile = __DIR__."/".date("Ymd") . ".chc";
+    if (!file_exists($cachePalinsestoDayFile)) {
+        array_map('unlink', array_filter((array) glob(__DIR__."/"."*.chc")));
+        $json = file_get_contents($url);
+        $resp = json_decode($json);
+        $cacheFielObj = array();
+        foreach ($resp as $show) {
+            $temp = explode(":", $show->start);
+            $key = intval($temp[0]) * 60 + intval($temp[1]);
+            $cacheFielObj[$key] = $show->program_id;
+        }
+        ksort($cacheFielObj);
+        $objData = serialize($cacheFielObj);
+        $fp = fopen($cachePalinsestoDayFile, "w");
+        fwrite($fp, $objData);
+        fclose($fp);
+    } else {
+        $objData = file_get_contents($cachePalinsestoDayFile);
+        $cacheFielObj = unserialize($objData);
+    }
+    $r = getProgramIdFromObject($cacheFielObj);
+    return $r;
+}
+
 function insertListner($radioListner, $dbConfig) {
 
     $conn = new mysqli($dbConfig["servername"], $dbConfig["username"], $dbConfig["password"], $dbConfig["dbname"]);
     $date = date("Y-m-d H:i:s");
-    $sql = "INSERT INTO `other_radio` (`date`, `listner`, `name`) VALUES ";
+    $sql = "INSERT INTO `other_radio` (`date`, `listner`, `name`, `trasmission_id`) VALUES ";
     foreach ($radioListner as $radioName => $listner) {
-        if ($listner != null && $listner != "" && is_numeric($listner)) {
-            $sql .= "('$date', $listner,'$radioName'),";
+        if ($listner['listner'] != null && $listner['listner'] != "" && is_numeric($listner['listner'])) {
+            $pId = isset($listner['programId']) ? $listner['programId'] : 0;
+            $number = $listner['listner'];
+            $sql .= "('$date', $number,'$radioName',$pId),";
         }
     }
     $sql = substr($sql, 0, -1);
@@ -113,7 +169,12 @@ foreach ($config["radios"] as $radioName => $data) {
                 break;
         }
     }
-    $res[$radioName] = $listner;
+    if (isset($data['isMyRadio']) && $data['isMyRadio']) {
+        $res[$radioName]['programId'] = getProgramId( $config["palinsestoUrl"]);
+    }
+    $res[$radioName]['listner'] = $listner;
 }
-//print_r($res);die();
+if ($DEBUG) {
+    print_r($res);
+}
 insertListner($res, $config["dbConfig"]);
