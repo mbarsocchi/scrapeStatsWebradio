@@ -97,7 +97,7 @@ function getProgramIdFromObject($cacheFielObj) {
     $minuteFromMidnight = intval($temp[0]) * 60 + intval($temp[1]);
     $r = 0;
     foreach ($cacheFielObj as $key => $progId) {
-        $currentDiff = intval($key) - $minuteFromMidnight;
+        $currentDiff = $minuteFromMidnight-intval($key);
         if ($currentDiff >= 0) {
             $r = $progId;
             break;
