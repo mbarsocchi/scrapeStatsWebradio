@@ -24,10 +24,12 @@ EXAMPLE
           "password": "<DB-PASSWORD>",
           "dbname": "<DB-TABLE-FOR-LISTNER>"
         },
+        "scheduleUrl\":\"https://www.myradio.com/api-show-schedule"  //optional
         "radios": {
           "<RADIO-NUMBER-1>": {
             "url": "<WEBRADIO-SERVER-URL1>",
-            "protocol": "shout"
+            "protocol": "shout",
+            "isMyRadio":true      //optional, if scheduleUrl exists, we use this to save show infor
           },
           "<RADIO-NUMBER-2>": {
             "url": "<WEBRADIO-SERVER-URL2>",
