@@ -19,7 +19,7 @@ if (file_exists($fileCompletePath)) {
     \"password\": \"<DB-PASSWORD>\",
     \"dbname\": \"<DB-TABLE-FOR-LISTNER>\"
   },
-   \"palinsestoUrl\":\"\",
+  \"scheduleUrl\":\"https://www.myradio.com/show-schedule-api\",
   \"radios\": {
     \"<RADIO-NUMBER-1>\": {
       \"url\": \"<WEBRADIO-SERVER-URL1>\",
@@ -106,8 +106,8 @@ function getProgramIdFromObject($cacheFielObj) {
 }
 
 function getProgramId($url) {
-    $cachePalinsestoDayFile = __DIR__ . "/" . date("Ymd") . ".chc";
-    if (!file_exists($cachePalinsestoDayFile)) {
+    $cacheShowScheduleDayFile = __DIR__ . "/" . date("Ymd") . ".chc";
+    if (!file_exists($cacheShowScheduleDayFile)) {
         array_map('unlink', array_filter((array) glob(__DIR__ . "/" . "*.chc")));
         $json = file_get_contents($url);
         $resp = json_decode($json);
@@ -119,11 +119,11 @@ function getProgramId($url) {
         }
         ksort($cacheFielObj);
         $objData = serialize($cacheFielObj);
-        $fp = fopen($cachePalinsestoDayFile, "w");
+        $fp = fopen($cacheShowScheduleDayFile, "w");
         fwrite($fp, $objData);
         fclose($fp);
     } else {
-        $objData = file_get_contents($cachePalinsestoDayFile);
+        $objData = file_get_contents($cacheShowScheduleDayFile);
         $cacheFielObj = unserialize($objData);
     }
     $r = getProgramIdFromObject($cacheFielObj);
@@ -174,7 +174,7 @@ foreach ($config["radios"] as $radioName => $data) {
         }
     }
     if (isset($data['isMyRadio']) && $data['isMyRadio']) {
-        $res[$radioName]['programId'] = getProgramId($config["palinsestoUrl"]);
+        $res[$radioName]['programId'] = getProgramId($config["scheduleUrl"]);
     }
     $res[$radioName]['listner'] = $listner;
 }
