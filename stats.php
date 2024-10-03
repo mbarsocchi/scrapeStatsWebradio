@@ -94,7 +94,6 @@ function geticecastlistner($dom, $position) {
 function getProgramIdFromObject($cacheFielObj) {
     $temp = explode(":", date("G:i"));
     $minuteFromMidnight = intval($temp[0]) * 60 + intval($temp[1]);
-    $tempDiff = 1440; // number of minutes in a day
     $r = 0;
     foreach ($cacheFielObj as $key => $progId) {
         $currentDiff = intval($key) - $minuteFromMidnight;
