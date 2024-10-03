@@ -173,7 +173,7 @@ foreach ($config["radios"] as $radioName => $data) {
                 break;
         }
     }
-    if (isset($data['isMyRadio']) && $data['isMyRadio']) {
+    if (isset($data['isMyRadio']) && isset($config["scheduleUrl"]) && $data['isMyRadio']) {
         $res[$radioName]['programId'] = getProgramId($config["scheduleUrl"]);
     }
     $res[$radioName]['listner'] = $listner;
