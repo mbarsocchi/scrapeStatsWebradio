@@ -95,7 +95,7 @@ function geticecastlistner($dom, $position) {
 function getProgramIdFromObject($cacheFielObj) {
     $temp = explode(":", date("G:i"));
     $minuteFromMidnight = intval($temp[0]) * 60 + intval($temp[1]);
-    $r = 0;
+    $r = null;
     foreach ($cacheFielObj as $key => $progId) {
         $currentDiff = $minuteFromMidnight-intval($key);
         if ($currentDiff >= 0) {
@@ -174,7 +174,10 @@ foreach ($config["radios"] as $radioName => $data) {
         }
     }
     if (isset($data['isMyRadio']) && isset($config["scheduleUrl"]) && $data['isMyRadio']) {
-        $res[$radioName]['programId'] = getProgramId($config["scheduleUrl"]);
+        $progId = getProgramId($config["scheduleUrl"]);
+        if ($progId != null) {
+            $res[$radioName]['programId'] = $progId;
+        }
     }
     $res[$radioName]['listner'] = $listner;
 }
