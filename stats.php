@@ -1,6 +1,7 @@
 <?php
 
 $DEBUG = false;
+date_default_timezone_set("Europe/Rome");
 
 if (isset($argv[1]) && strtolower($argv[1]) == "debug") {
     $DEBUG = true;
@@ -133,7 +134,6 @@ function getProgramId($url) {
 function insertListner($radioListner, $dbConfig) {
 
     $conn = new mysqli($dbConfig["servername"], $dbConfig["username"], $dbConfig["password"], $dbConfig["dbname"]);
-    date_default_timezone_set("Europe/Rome");
     $date = date("Y-m-d H:i:s");
     $sql = "INSERT INTO `other_radio` (`date`, `listner`, `name`, `trasmission_id`) VALUES ";
     foreach ($radioListner as $radioName => $listner) {
