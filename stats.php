@@ -95,12 +95,12 @@ function geticecastlistner($dom, $position) {
 function getProgramIdFromObject($cacheFielObj) {
     $temp = explode(":", date("G:i"));
     $minuteFromMidnight = intval($temp[0]) * 60 + intval($temp[1]);
-    $r = null;
+    $prevDiff=1440;
     foreach ($cacheFielObj as $key => $progId) {
         $currentDiff = $minuteFromMidnight-intval($key);
-        if ($currentDiff >= 0) {
+        if ($currentDiff >= 0 && $currentDiff < $prevDiff) {
             $r = $progId;
-            break;
+            $prevDiff = $currentDiff;
         }
     }
     return $r;
