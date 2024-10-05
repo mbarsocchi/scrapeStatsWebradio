@@ -57,7 +57,7 @@ function getDom($url) {
     if ($html != null && $html != "") {
         @$dom->loadHTML($html);
         $dom->preserveWhiteSpace = false;
-    } else {
+    } else if ($GLOBALS['DEBUG']) {
         echo $url;
     }
 
@@ -95,10 +95,10 @@ function geticecastlistner($dom, $position) {
 function getProgramIdFromObject($cacheFielObj) {
     $temp = explode(":", date("G:i"));
     $minuteFromMidnight = intval($temp[0]) * 60 + intval($temp[1]);
-    $prevDiff=1440;
+    $prevDiff = 1440;
     $r = null;
     foreach ($cacheFielObj as $key => $progId) {
-        $currentDiff = $minuteFromMidnight-intval($key);
+        $currentDiff = $minuteFromMidnight - intval($key);
         if ($currentDiff >= 0 && $currentDiff < $prevDiff) {
             $r = $progId;
             $prevDiff = $currentDiff;
@@ -133,8 +133,15 @@ function getProgramId($url) {
 }
 
 function insertListner($radioListner, $dbConfig) {
-
-    $conn = new mysqli($dbConfig["servername"], $dbConfig["username"], $dbConfig["password"], $dbConfig["dbname"]);
+    try {
+        $conn = new mysqli($dbConfig["servername"], $dbConfig["username"], $dbConfig["password"], $dbConfig["dbname"]);
+    } catch (Exception $e) {
+        $error = $e->getMessage();
+        if ($GLOBALS['DEBUG']) {
+            echo "mysqli error: " . $error;
+        }
+        die();
+    }
     $date = date("Y-m-d H:i:s");
     $sql = "INSERT INTO `other_radio` (`date`, `listner`, `name`, `trasmission_id`) VALUES ";
     foreach ($radioListner as $radioName => $listner) {
@@ -149,10 +156,12 @@ function insertListner($radioListner, $dbConfig) {
         }
     }
     $sql = substr($sql, 0, -1);
-    if ($conn->query($sql) !== TRUE) {
-        echo "Error: " . $sql . "<br>" . $conn->error;
+    if (isset($conn)) {
+        if ($conn->query($sql) !== TRUE && $GLOBALS['DEBUG']) {
+            echo "Error executing query: " . $sql . "<br>" . $conn->error;
+        }
+        $conn->close();
     }
-    $conn->close();
 }
 
 foreach ($config["radios"] as $radioName => $data) {
@@ -182,7 +191,7 @@ foreach ($config["radios"] as $radioName => $data) {
     }
     $res[$radioName]['listner'] = $listner;
 }
-if ($DEBUG) {
+if ($GLOBALS['DEBUG']) {
     print_r($res);
 }
 insertListner($res, $config["dbConfig"]);
