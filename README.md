@@ -24,7 +24,7 @@ EXAMPLE
           "password": "<DB-PASSWORD>",
           "dbname": "<DB-TABLE-FOR-LISTNER>"
         },
-        "scheduleUrl\":\"https://www.myradio.com/api-show-schedule"  //optional
+        "scheduleUrl":\"https://www.myradio.com/api-show-schedule"  //optional
         "radios": {
           "<RADIO-NUMBER-1>": {
             "url": "<WEBRADIO-SERVER-URL1>",
