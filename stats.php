@@ -110,14 +110,17 @@ function getProgramIdFromObject($cacheFielObj) {
 function getProgramId($url) {
     $cacheShowScheduleDayFile = __DIR__ . "/" . date("Ymd") . ".chc";
     if (!file_exists($cacheShowScheduleDayFile)) {
+        $dayOfTheWeek=date("N");
         array_map('unlink', array_filter((array) glob(__DIR__ . "/" . "*.chc")));
         $json = file_get_contents($url);
         $resp = json_decode($json);
         $cacheFielObj = array();
         foreach ($resp as $show) {
-            $temp = explode(":", $show->start);
-            $key = intval($temp[0]) * 60 + intval($temp[1]);
-            $cacheFielObj[$key] = $show->program_id;
+            if ($show->day == $dayOfTheWeek) {
+                $temp = explode(":", $show->start);
+                $key = intval($temp[0]) * 60 + intval($temp[1]);
+                $cacheFielObj[$key] = $show->program_id;
+            }
         }
         ksort($cacheFielObj);
         $objData = serialize($cacheFielObj);
