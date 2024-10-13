@@ -1,9 +1,17 @@
 <?php
-$fileCompletePath = dirname(__FILE__).'/config.json';
+
+$DEBUG = false;
+date_default_timezone_set("Europe/Rome");
+
+if (isset($argv[1]) && strtolower($argv[1]) == "debug") {
+    $DEBUG = true;
+}
+
+$fileCompletePath = dirname(__FILE__) . '/config.json';
 if (file_exists($fileCompletePath)) {
     $json = file_get_contents($fileCompletePath);
     $config = json_decode($json, true);
-}else {
+} else {
     die("no config.json file found in the root of this project, please provide ones writtens like this:"
             . "{
   \"dbConfig\": {
@@ -12,10 +20,12 @@ if (file_exists($fileCompletePath)) {
     \"password\": \"<DB-PASSWORD>\",
     \"dbname\": \"<DB-TABLE-FOR-LISTNER>\"
   },
+  \"scheduleUrl\":\"https://www.myradio.com/show-schedule-api\",
   \"radios\": {
     \"<RADIO-NUMBER-1>\": {
       \"url\": \"<WEBRADIO-SERVER-URL1>\",
-      \"protocol\": \"shout\"
+      \"protocol\": \"shout\",
+      \"isMyRadio\":true
     },
     \"<RADIO-NUMBER-2>\": {
       \"url\": \"<WEBRADIO-SERVER-URL2>\",
@@ -44,8 +54,13 @@ function getDom($url) {
     curl_close($curl);
 
     $dom = new DOMDocument();
-    @$dom->loadHTML($html);
-    $dom->preserveWhiteSpace = false;
+    if ($html != null && $html != "") {
+        @$dom->loadHTML($html);
+        $dom->preserveWhiteSpace = false;
+    } else if ($GLOBALS['DEBUG']) {
+        echo $url;
+    }
+
     return $dom;
 }
 
@@ -77,21 +92,79 @@ function geticecastlistner($dom, $position) {
     return $res;
 }
 
-function insertListner($radioListner, $dbConfig) {
+function getProgramIdFromObject($cacheFielObj) {
+    $temp = explode(":", date("G:i"));
+    $minuteFromMidnight = intval($temp[0]) * 60 + intval($temp[1]);
+    $prevDiff = 1440;
+    $r = null;
+    foreach ($cacheFielObj as $key => $progId) {
+        $currentDiff = $minuteFromMidnight - intval($key);
+        if ($currentDiff >= 0 && $currentDiff < $prevDiff) {
+            $r = $progId;
+            $prevDiff = $currentDiff;
+        }
+    }
+    return $r;
+}
 
-    $conn = new mysqli($dbConfig["servername"], $dbConfig["username"], $dbConfig["password"], $dbConfig["dbname"]);
+function getProgramId($url) {
+    $cacheShowScheduleDayFile = __DIR__ . "/" . date("Ymd") . ".chc";
+    if (!file_exists($cacheShowScheduleDayFile)) {
+        $dayOfTheWeek=date("N");
+        array_map('unlink', array_filter((array) glob(__DIR__ . "/" . "*.chc")));
+        $json = file_get_contents($url);
+        $resp = json_decode($json);
+        $cacheFielObj = array();
+        foreach ($resp as $show) {
+            if ($show->day == $dayOfTheWeek) {
+                $temp = explode(":", $show->start);
+                $key = intval($temp[0]) * 60 + intval($temp[1]);
+                $cacheFielObj[$key] = $show->program_id;
+            }
+        }
+        ksort($cacheFielObj);
+        $objData = serialize($cacheFielObj);
+        $fp = fopen($cacheShowScheduleDayFile, "w");
+        fwrite($fp, $objData);
+        fclose($fp);
+    } else {
+        $objData = file_get_contents($cacheShowScheduleDayFile);
+        $cacheFielObj = unserialize($objData);
+    }
+    $r = getProgramIdFromObject($cacheFielObj);
+    return $r;
+}
+
+function insertListner($radioListner, $dbConfig) {
+    try {
+        $conn = new mysqli($dbConfig["servername"], $dbConfig["username"], $dbConfig["password"], $dbConfig["dbname"]);
+    } catch (Exception $e) {
+        $error = $e->getMessage();
+        if ($GLOBALS['DEBUG']) {
+            echo "mysqli error: " . $error;
+        }
+        die();
+    }
     $date = date("Y-m-d H:i:s");
-    $sql = "INSERT INTO `other_radio` (`date`, `listner`, `name`) VALUES ";
+    $sql = "INSERT INTO `other_radio` (`date`, `listner`, `name`, `trasmission_id`) VALUES ";
     foreach ($radioListner as $radioName => $listner) {
-        if ($listner != null && $listner != "" && is_numeric($listner)) {
-            $sql .= "('$date', $listner,'$radioName'),";
+        if ($listner['listner'] != null && $listner['listner'] != "" && is_numeric($listner['listner'])) {
+            $number = $listner['listner'];
+            $pId = @$listner['programId'];
+            if (isset($pId)) {
+                $sql .= "('$date', $number,'$radioName',$pId),";
+            } else {
+                $sql .= "('$date', $number,'$radioName',NULL),";
+            }
         }
     }
     $sql = substr($sql, 0, -1);
-    if ($conn->query($sql) !== TRUE) {
-        echo "Error: " . $sql . "<br>" . $conn->error;
+    if (isset($conn)) {
+        if ($conn->query($sql) !== TRUE && $GLOBALS['DEBUG']) {
+            echo "Error executing query: " . $sql . "<br>" . $conn->error;
+        }
+        $conn->close();
     }
-    $conn->close();
 }
 
 foreach ($config["radios"] as $radioName => $data) {
@@ -113,7 +186,15 @@ foreach ($config["radios"] as $radioName => $data) {
                 break;
         }
     }
-    $res[$radioName] = $listner;
+    if (isset($data['isMyRadio']) && isset($config["scheduleUrl"]) && $data['isMyRadio']) {
+        $progId = getProgramId($config["scheduleUrl"]);
+        if ($progId != null) {
+            $res[$radioName]['programId'] = $progId;
+        }
+    }
+    $res[$radioName]['listner'] = $listner;
 }
-//print_r($res);die();
+if ($GLOBALS['DEBUG']) {
+    print_r($res);
+}
 insertListner($res, $config["dbConfig"]);
