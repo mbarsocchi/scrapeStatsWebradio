@@ -110,7 +110,7 @@ function getProgramIdFromObject($cacheFielObj) {
 function getProgramId($url) {
     $cacheShowScheduleDayFile = __DIR__ . "/" . date("Ymd") . ".chc";
     if (!file_exists($cacheShowScheduleDayFile)) {
-        $dayOfTheWeek=date("N");
+        $dayOfTheWeek=date("w");
         array_map('unlink', array_filter((array) glob(__DIR__ . "/" . "*.chc")));
         $json = file_get_contents($url);
         $resp = json_decode($json);
